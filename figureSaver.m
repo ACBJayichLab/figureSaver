@@ -26,33 +26,41 @@ function appFig=figureSaver
     end
     
     % === Create GUI ===
-    appFig = uifigure('Name','figureSaver','Position',[200 200 336 140]);
+    appFig = uifigure('Name','figureSaver','Position',[200 200 336 160]);
 
     % Filename controls
-    uilabel(appFig,'Text','File name:','Position',[10,110,100,22]);
+    uilabel(appFig,'Text','File name:','Position',[10,130,100,22]);
     filenameDrop = uidropdown(appFig,...
         'Items',recentFilenames,...
         'Editable','on',...
         'Value',recentFilenames{1},...
-        'Position',[110,110,220,22]);
+        'Position',[110,130,220,22]);
 
     % Resolution controls
-    uilabel(appFig,'Text','Resolution (dpi):','Position',[10,80,100,22]);
+    uilabel(appFig,'Text','Resolution (dpi):','Position',[10,100,100,22]);
     resBox = uieditfield(appFig,'numeric',...
-        'Position',[110,80,60,22],...
+        'Position',[110,100,60,22],...
         'Value',600,...
         'HorizontalAlignment','center');   % default 600 dpi centered
 
     % Checkboxes for file formats
-    figCheck = uicheckbox(appFig,'Text','.fig','Position',[180,80,50,22],'Value',true);
-    pngCheck = uicheckbox(appFig,'Text','.png','Position',[230,80,50,22],'Value',true);
-    epsCheck = uicheckbox(appFig,'Text','.eps','Position',[280,80,50,22],'Value',false);
+    figCheck = uicheckbox(appFig,'Text','.fig','Position',[180,100,50,22],'Value',true);
+    pngCheck = uicheckbox(appFig,'Text','.png','Position',[230,100,50,22],'Value',true);
+    epsCheck = uicheckbox(appFig,'Text','.eps','Position',[280,100,50,22],'Value',false);
 
     % Folder path controls
-    uilabel(appFig,'Text','Save folder:','Position',[10,50,100,22]);
+    uilabel(appFig,'Text','Save folder:','Position',[10,70,100,22]);
     folderBox = uieditfield(appFig,'text',...
-        'Position',[110 50 220 22],...
+        'Position',[110 70 220 22],...
         'Value',saveFolder);
+
+    % Status label (just above button, smaller font)
+    statusLabel = uilabel(appFig,...
+        'Text','',...
+        'Position',[10,50,330,18],...
+        'FontColor',[0 0.5 0],...   % green
+        'FontSize',8,...
+        'HorizontalAlignment','left');
 
     % Save button
     uibutton(appFig,'push',...
@@ -67,12 +75,12 @@ function appFig=figureSaver
         outPath = strtrim(folderBox.Value);
 
         if isempty(fname)
-            uialert(appFig,'Please enter a file name.','Error','Icon','error');
+            showStatus('Please enter a file name.','error');
             return;
         end
 
         if isempty(outPath) || ~isfolder(outPath)
-            uialert(appFig,'Please enter a valid folder path.','Error','Icon','error');
+            showStatus('Please enter a valid folder path.','error');
             return;
         end
 
@@ -80,15 +88,13 @@ function appFig=figureSaver
         try
             figHandle = gcf;
         catch
-            uialert(appFig,'No figure selected. Click a figure window first.',...
-                'Error','Icon','error');
+            showStatus('No figure selected. Click a figure window first.','error');
             return;
         end
 
         % Prevent saving the app's own GUI
         if figHandle == appFig
-            uialert(appFig,'Please click a plotting figure, not this GUI.',...
-                'Error','Icon','error');
+            showStatus('Please click a plotting figure, not this GUI.','error');
             return;
         end
 
@@ -115,7 +121,7 @@ function appFig=figureSaver
         end
 
         if isempty(savedFiles)
-            uialert(appFig,'No file formats selected. Check at least one.','Error','Icon','error');
+            showStatus('No file formats selected. Check at least one.','error');
             return;
         end
 
@@ -133,9 +139,29 @@ function appFig=figureSaver
         filenameDrop.Items = recentFilenames;
         filenameDrop.Value = fname;
 
-        % ✅ Success alert with blue info icon
-        uialert(appFig, ...
-            sprintf("Figure saved as:\n%s", strjoin(savedFiles,newline)), ...
-            'Success','Icon','info');
+        % ✅ Success message (auto clears after 3 sec)
+        showStatus(sprintf("Saved:%s", strjoin(savedFiles,newline)),'success');
+    end
+
+    % === Helper: show temporary status message ===
+    function showStatus(msg,type)
+        switch type
+            case 'error'
+                statusLabel.FontColor = [0.8 0 0]; % red
+            otherwise
+                statusLabel.FontColor = [0 0.5 0]; % green
+        end
+        statusLabel.Text = msg;
+
+        % Auto-clear after 3 seconds
+        t = timer('StartDelay',10,'TimerFcn',@(~,~) clearStatus());
+        start(t);
+    end
+
+    function clearStatus()
+        if isvalid(statusLabel)
+            statusLabel.Text = '';
+        end
+        stop(timerfindall); delete(timerfindall); % cleanup timers
     end
 end
