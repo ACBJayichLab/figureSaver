@@ -26,7 +26,7 @@ function appFig=figureSaver
     end
     
     % === Create GUI ===
-    appFig = uifigure('Name','figureSaver','Position',[200 200 336 160]);
+    appFig = uifigure('Name','figureSaver','Position',[200 200 360 160]);
 
     % Filename controls
     uilabel(appFig,'Text','File name:','Position',[10,130,100,22]);
@@ -34,7 +34,7 @@ function appFig=figureSaver
         'Items',recentFilenames,...
         'Editable','on',...
         'Value',recentFilenames{1},...
-        'Position',[110,130,220,22]);
+        'Position',[110,130,230,22]);
 
     % Resolution controls
     uilabel(appFig,'Text','Resolution (dpi):','Position',[10,100,100,22]);
@@ -51,25 +51,31 @@ function appFig=figureSaver
     % Folder path controls
     uilabel(appFig,'Text','Save folder:','Position',[10,70,100,22]);
     folderBox = uieditfield(appFig,'text',...
-        'Position',[110 70 220 22],...
+        'Position',[110 70 230 22],...
         'Value',saveFolder);
 
     % Status label (just above button, smaller font)
     statusLabel = uilabel(appFig,...
         'Text','',...
-        'Position',[10,50,330,18],...
+        'Position',[10,45,340,22],...
         'FontColor',[0 0.5 0],...   % green
-        'FontSize',8,...
+        'FontSize',10,...
         'HorizontalAlignment','left');
 
-    % Save button
+    % Save button (no overwrite)
     uibutton(appFig,'push',...
         'Text','Save Last Clicked Figure',...
-        'Position',[35,10,280,30],...
-        'ButtonPushedFcn',@saveLastClickedFigure);
+        'Position',[150,10,200,30],...
+        'ButtonPushedFcn',@(~,~)saveLastClickedFigure(false));
+
+    % Overwrite Save button
+    uibutton(appFig,'push',...
+        'Text','Overwrite Save',...
+        'Position',[10,10,130,30],...
+        'ButtonPushedFcn',@(~,~)saveLastClickedFigure(true));
 
     % === Callback: Save ===
-    function saveLastClickedFigure(~,~)
+    function saveLastClickedFigure(overwrite)
         fname   = strtrim(filenameDrop.Value);
         res     = resBox.Value;
         outPath = strtrim(folderBox.Value);
@@ -101,10 +107,28 @@ function appFig=figureSaver
         % Build full save path base
         fullBase = fullfile(outPath,fname);
 
-        % Track what was saved
-        savedFiles = {};
+        % Collect intended save files
+        toSave = {};
+        if figCheck.Value, toSave{end+1} = [fullBase '.fig']; end
+        if pngCheck.Value, toSave{end+1} = [fullBase '.png']; end
+        if epsCheck.Value, toSave{end+1} = [fullBase '.eps']; end
 
-        % Save according to checkboxes
+        if isempty(toSave)
+            showStatus('No file formats selected. Check at least one.','error');
+            return;
+        end
+
+        % === Check overwrite condition ===
+        if ~overwrite
+            existsAlready = any(cellfun(@(f) exist(f,'file'),toSave));
+            if existsAlready
+                showStatus('File already exists. Use Overwrite Save instead.','error');
+                return;
+            end
+        end
+
+        % Save files
+        savedFiles = {};
         if figCheck.Value
             savefig(figHandle, [fullBase '.fig']);
             savedFiles{end+1} = [fullBase '.fig'];
@@ -116,13 +140,8 @@ function appFig=figureSaver
         end
 
         if epsCheck.Value
-            print(figHandle,[fullBase '.eps'],'-depsc','-r',num2str(res));
+            print(figHandle,[fullBase '.eps'],'-depsc',['-r' num2str(res)]);
             savedFiles{end+1} = [fullBase '.eps'];
-        end
-
-        if isempty(savedFiles)
-            showStatus('No file formats selected. Check at least one.','error');
-            return;
         end
 
         % Update recent filenames (unique, most recent first, max 10)
@@ -139,7 +158,7 @@ function appFig=figureSaver
         filenameDrop.Items = recentFilenames;
         filenameDrop.Value = fname;
 
-        % ✅ Success message (auto clears after 3 sec)
+        % ✅ Success message
         showStatus(sprintf("Saved:%s", strjoin(savedFiles,newline)),'success');
     end
 
@@ -153,8 +172,8 @@ function appFig=figureSaver
         end
         statusLabel.Text = msg;
 
-        % Auto-clear after 3 seconds
-        t = timer('StartDelay',10,'TimerFcn',@(~,~) clearStatus());
+        % Auto-clear after 5 seconds
+        t = timer('StartDelay',5,'TimerFcn',@(~,~) clearStatus());
         start(t);
     end
 
