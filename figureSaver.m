@@ -26,7 +26,7 @@ function appFig=figureSaver
     end
     
     % === Create GUI ===
-    appFig = uifigure('Name','figureSaver','Position',[200 200 360 160]);
+    appFig = uifigure('Name','figureSaver','Position',[200 200 358 160]);
 
     % Filename controls
     uilabel(appFig,'Text','File name:','Position',[10,130,100,22]);
@@ -34,7 +34,14 @@ function appFig=figureSaver
         'Items',recentFilenames,...
         'Editable','on',...
         'Value',recentFilenames{1},...
-        'Position',[110,130,230,22]);
+        'Position',[110,130,200,22]);
+
+    % File dialog button
+    uibutton(appFig,'push',...
+        'Text','📂',...
+        'Position',[315,130,30,22],...
+        'Tooltip','Choose file name & folder',...
+        'ButtonPushedFcn',@(~,~)chooseFileDialog());
 
     % Resolution controls
     uilabel(appFig,'Text','Resolution (dpi):','Position',[10,100,100,22]);
@@ -51,13 +58,13 @@ function appFig=figureSaver
     % Folder path controls
     uilabel(appFig,'Text','Save folder:','Position',[10,70,100,22]);
     folderBox = uieditfield(appFig,'text',...
-        'Position',[110 70 230 22],...
+        'Position',[110 70 235 22],...
         'Value',saveFolder);
 
     % Status label (just above button, smaller font)
     statusLabel = uilabel(appFig,...
         'Text','',...
-        'Position',[10,45,340,22],...
+        'Position',[10,45,380,22],...
         'FontColor',[0 0.5 0],...   % green
         'FontSize',10,...
         'HorizontalAlignment','left');
@@ -73,6 +80,18 @@ function appFig=figureSaver
         'Text','Overwrite Save',...
         'Position',[10,10,130,30],...
         'ButtonPushedFcn',@(~,~)saveLastClickedFigure(true));
+
+    % === File Dialog Callback ===
+    function chooseFileDialog()
+        [file,path] = uigetfile({'*.png;*.fig;*.eps','Figure Files (*.png,*.fig,*.eps)'},...
+            'Select a file',fullfile(folderBox.Value,filenameDrop.Value));
+        if isequal(file,0) || isequal(path,0)
+            return; % user cancelled
+        end
+        [~,name,~] = fileparts(file); % strip extension
+        folderBox.Value = path;
+        filenameDrop.Value = name;
+    end
 
     % === Callback: Save ===
     function saveLastClickedFigure(overwrite)
