@@ -47,7 +47,7 @@ function appFig=figureSaver
     uilabel(appFig,'Text','Resolution (dpi):','Position',[10,100,100,22]);
     resBox = uieditfield(appFig,'numeric',...
         'Position',[110,100,60,22],...
-        'Value',600,...
+        'Value',300,...
         'HorizontalAlignment','center');   % default 600 dpi centered
 
     % Checkboxes for file formats
@@ -83,7 +83,7 @@ function appFig=figureSaver
 
     % === File Dialog Callback ===
     function chooseFileDialog()
-        [file,path] = uigetfile({'*.png;*.fig;*.eps','Figure Files (*.png,*.fig,*.eps)'},...
+        [file,path] = uiputfile({'*.png;*.fig;*.eps','Figure Files (*.png,*.fig,*.eps)'},...
             'Select a file',fullfile(folderBox.Value,filenameDrop.Value));
         if isequal(file,0) || isequal(path,0)
             return; % user cancelled
@@ -165,8 +165,8 @@ function appFig=figureSaver
 
         % Update recent filenames (unique, most recent first, max 10)
         recentFilenames = [{fname}, setdiff(recentFilenames,fname,'stable')];
-        if numel(recentFilenames) > 10
-            recentFilenames = recentFilenames(1:10);
+        if numel(recentFilenames) > 20
+            recentFilenames = recentFilenames(1:20);
         end
 
         % Save preferences across sessions
